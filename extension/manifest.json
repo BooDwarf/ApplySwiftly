@@ -1,0 +1,20 @@
+{
+  "manifest_version": 3,
+  "name": "ApplySwiftly",
+  "version": "0.1",
+  "description": "Reduce repetitive job application form entry.",
+  "permissions": ["activeTab"],
+  "host_permissions": ["<all_urls>"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "action": {
+    "default_popup": "popup.html"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://*/*", "http://*/*"],
+      "js": ["content.js"]
+    }
+  ]
+}
