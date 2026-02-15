@@ -1,40 +1,45 @@
 function getFormFields() {
-    const fields = Array.from(
-        document.querySelectorAll("input, textarea, select")
-    );
+  const elements = Array.from(
+    document.querySelectorAll("input, textarea, select")
+  );
 
-    return fields
-        .filter((field) => {
-            
-            if (field.type === "hidden") return false;
+  return elements
+    .filter((el) => {
+      const type = el.type;
 
-            if (field.type === "submit" || field.type === "button") return false;
+      if (type === "hidden" || type === "submit" || type === "button") {
+        return false;
+      }
 
-            if (field.type === "checkbox") return false;
+      if (type === "search") return false;
 
-            return true;
-        })
-        .map((field) => {
-            const label =
-                field.labels?.[0]?.innerText ||
-                field.getAttribute("aria-label") ||
-                field.getAttribute("placeholder") ||
-                "";
+      if (type === "file") return false;
 
-            return {
-                tag: field.tagName,
-                type: field.type || "",
-                name: field.name || "",
-                label: label.trim()
-            };
-        });
+      return true;
+    })
+    .map((el) => {
+      const label =
+        el.labels?.[0]?.innerText ||
+        el.closest("label")?.innerText ||
+        el.getAttribute("aria-label") ||
+        el.getAttribute("placeholder") ||
+        "";
+
+      return {
+        tag: el.tagName,
+        type: el.type || "",
+        name: el.name || "",
+        label: label.trim()
+      };
+    })
+    .filter((field) => field.label.length > 0); // Remove empty label fields
 }
 
 
-chrome.runtime.onMessage.addListener((message) => {
-    if (message.action === "scanFields") {
-        const fields = getFormFields();
-        console.log("Detected fields:");
-        console.table(fields);
-    }
+
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.action === "scanFields") {
+    const fields = getFormFields();
+    sendResponse({ fields });
+  }
 });
