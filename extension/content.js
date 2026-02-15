@@ -1,45 +1,160 @@
-function getFormFields() {
+(function () {
+  const DEBUG = true;
+
+  // ===== PROFILE DATA =====
+  const profile = {
+    firstName: "John",
+    lastName: "Doe",
+    fullName: "John Doe",
+    email: "example@example.com",
+    phone: "1234567890",
+    position: "Software Engineer",
+    coverLetter:
+      "I am very interested in this position and believe my skills align well with your needs."
+  };
+
   const elements = Array.from(
-    document.querySelectorAll("input, textarea, select")
+    document.querySelectorAll("input, textarea")
   );
 
-  return elements
-    .filter((el) => {
-      const type = el.type;
+  let filledCount = 0;
+  const filledFields = [];
 
-      if (type === "hidden" || type === "submit" || type === "button") {
-        return false;
-      }
+  elements.forEach((el) => {
+    if (!el.type) return;
 
-      if (type === "search") return false;
+    const type = el.type.toLowerCase();
 
-      if (type === "file") return false;
+    if (
+      type === "hidden" ||
+      type === "submit" ||
+      type === "button" ||
+      type === "search" ||
+      type === "file"
+    ) {
+      return;
+    }
 
-      return true;
-    })
-    .map((el) => {
-      const label =
-        el.labels?.[0]?.innerText ||
-        el.closest("label")?.innerText ||
-        el.getAttribute("aria-label") ||
-        el.getAttribute("placeholder") ||
-        "";
+    const labelText =
+      el.labels?.[0]?.innerText ||
+      el.closest("label")?.innerText ||
+      el.getAttribute("aria-label") ||
+      el.getAttribute("placeholder") ||
+      "";
 
-      return {
-        tag: el.tagName,
-        type: el.type || "",
-        name: el.name || "",
-        label: label.trim()
-      };
-    })
-    .filter((field) => field.label.length > 0); // Remove empty label fields
+    const text = labelText.toLowerCase().trim();
+
+    const nameAttr = (el.name || "").toLowerCase();
+    const idAttr = (el.id || "").toLowerCase();
+    
+
+    if (!text && !nameAttr && !idAttr) return;
+
+    // ===== MATCHING LOGIC =====
+
+if (
+  text.includes("first name") ||
+  nameAttr.includes("first") ||
+  idAttr.includes("first")
+) {
+  fillField(el, profile.firstName);
+}
+
+else if (
+  text.includes("last name") ||
+  nameAttr.includes("last") ||
+  idAttr.includes("last")
+) {
+  fillField(el, profile.lastName);
+}
+
+else if (text.includes("full name") || text === "name") {
+  fillField(el, profile.fullName);
+}
+
+else if (text.includes("email") || nameAttr.includes("email")) {
+  fillField(el, profile.email);
+}
+
+else if (
+  text.includes("phone") ||
+  text.includes("mobile") ||
+  nameAttr.includes("phone")
+) {
+  fillField(el, profile.phone);
+}
+
+else if (text.includes("position")) {
+  fillField(el, profile.position);
+}
+
+else if (text.includes("cover")) {
+  fillField(el, profile.coverLetter);
+}
+  });
+
+  showToast(`ApplySwiftly filled ${filledCount} fields`);
+
+  // ===== DEBUGGER =====
+  
+  if (DEBUG) {
+  console.group("🚀 ApplySwiftly Debug Report");
+  console.log("Total fields filled:", filledCount);
+  console.table(filledFields);
+  console.groupEnd();
 }
 
 
+  // ===== HELPERS =====
 
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (message.action === "scanFields") {
-    const fields = getFormFields();
-    sendResponse({ fields });
+function fillField(el, value) {
+  if (el.value && el.value.trim() !== "") return;
+
+  el.focus();
+  el.value = value;
+
+  el.dispatchEvent(new Event("input", { bubbles: true }));
+  el.dispatchEvent(new Event("change", { bubbles: true }));
+
+  filledCount++;
+
+  if (DEBUG) {
+    const labelText =
+      el.labels?.[0]?.innerText ||
+      el.closest("label")?.innerText ||
+      el.getAttribute("aria-label") ||
+      el.getAttribute("placeholder") ||
+      el.name ||
+      el.id ||
+      "Unknown Field";
+
+    filledFields.push({
+      field: labelText.trim(),
+      value: value
+    });
   }
-});
+}
+
+  function showToast(message) {
+    const toast = document.createElement("div");
+
+    toast.innerText = message;
+
+    toast.style.position = "fixed";
+    toast.style.bottom = "20px";
+    toast.style.right = "20px";
+    toast.style.background = "#111";
+    toast.style.color = "#fff";
+    toast.style.padding = "12px 16px";
+    toast.style.borderRadius = "6px";
+    toast.style.zIndex = "999999";
+    toast.style.fontSize = "14px";
+    toast.style.boxShadow = "0 4px 10px rgba(0,0,0,0.2)";
+
+    document.body.appendChild(toast);
+
+    setTimeout(() => {
+      toast.remove();
+    }, 2500);
+  }
+})();
