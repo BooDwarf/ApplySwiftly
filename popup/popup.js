@@ -1,17 +1,17 @@
 const btn = document.getElementById("autofillBtn");
 
-btn.addEventListener("click", async () => {
+document.getElementById("autofillBtn").addEventListener("click", async () => {
   const [tab] = await chrome.tabs.query({
     active: true,
     currentWindow: true
   });
 
-  if (!tab?.id) return;
-
   await chrome.scripting.executeScript({
     target: { tabId: tab.id },
-    files: ["content.js"]
+    files: ["content/content.js"]
   });
+});
 
-  window.close(); 
+document.getElementById("openOptions").addEventListener("click", () => {
+  chrome.runtime.openOptionsPage();
 });

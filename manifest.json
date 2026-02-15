@@ -1,0 +1,27 @@
+{
+  "manifest_version": 3,
+  "name": "ApplySwiftly",
+  "description": "Smart autofill for job applications.",
+  "version": "1.0.0",
+
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_title": "ApplySwiftly"
+  },
+
+  "background": {
+    "service_worker": "background/background.js"
+  },
+
+  "options_page": "options/options.html",
+
+  "permissions": [
+    "storage",
+    "activeTab",
+    "scripting"
+  ],
+
+  "host_permissions": [
+    "<all_urls>"
+  ]
+}
