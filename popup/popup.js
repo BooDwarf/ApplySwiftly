@@ -1,15 +1,10 @@
 const btn = document.getElementById("autofillBtn");
 
 document.getElementById("autofillBtn").addEventListener("click", async () => {
-  const [tab] = await chrome.tabs.query({
-    active: true,
-    currentWindow: true
-  });
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
 
-  await chrome.scripting.executeScript({
-    target: { tabId: tab.id },
-    files: ["content/content.js"]
-  });
+  // Just send a message to the content script already sitting in the tab
+  chrome.tabs.sendMessage(tab.id, { action: "TRIGGER_AUTOFILL" });
 });
 
 document.getElementById("openOptions").addEventListener("click", () => {

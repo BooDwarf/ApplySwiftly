@@ -8,12 +8,39 @@
   <h1>Profile Settings</h1>
 
   <form id="profileForm">
-    <input type="text" id="firstName" placeholder="First Name" required />
-    <input type="text" id="lastName" placeholder="Last Name" required />
-    <input type="email" id="email" placeholder="Email" required />
-    <input type="text" id="phone" placeholder="Phone" />
-    <input type="text" id="position" placeholder="Default Position" />
-    <textarea id="coverLetter" placeholder="Cover Letter"></textarea>
+    <fieldset>
+      <legend>Personal Information</legend>
+      <input type="text" id="firstName" placeholder="First Name" required />
+      <input type="text" id="lastName" placeholder="Last Name" required />
+      <input type="email" id="email" placeholder="Email" required />
+      <input type="text" id="phone" placeholder="Phone" />
+    </fieldset>
+
+    <fieldset>
+      <legend>Application Details</legend>
+      <input type="text" id="position" placeholder="Default Position" />
+      <input type="text" id="linkedin" placeholder="LinkedIn URL" />
+      <textarea id="coverLetter" placeholder="Cover Letter"></textarea>
+    </fieldset>
+
+    <fieldset>
+      <legend>Demographics & Legal (Dropdowns)</legend>
+      <label for="gender">Gender:</label>
+      <select id="gender">
+        <option value="">Select Gender</option>
+        <option value="Male">Male</option>
+        <option value="Female">Female</option>
+        <option value="Non-binary">Non-binary</option>
+        <option value="Decline">Decline to self-identify</option>
+      </select>
+
+      <label for="workAuth">Work Authorization:</label>
+      <select id="workAuth">
+        <option value="">Are you authorized to work?</option>
+        <option value="Yes">Yes</option>
+        <option value="No">No</option>
+      </select>
+    </fieldset>
 
     <button type="submit">Save Profile</button>
   </form>
