@@ -1,13 +1,25 @@
 <!DOCTYPE html>
 <html>
-  <body style="width:200px;font-family:Arial,sans-serif;">
-    <button id="autofillBtn" style="width:100%;padding:10px;">
+<head>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <span class="logo">ApplySwiftly</span>
+      <span class="version">v1.0</span>
+    </div>
+    
+    <button id="autofillBtn" class="btn-primary">
       Autofill Application
     </button>
-    <button id="openOptions" style="width:100%;padding:10px;">
+    
+    <div class="divider"></div>
+    
+    <button id="openOptions" class="btn-secondary">
       Edit Profile
     </button>
-
-    <script src="popup.js"></script>
-  </body>
+  </div>
+  <script src="popup.js"></script>
+</body>
 </html>
