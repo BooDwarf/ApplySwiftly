@@ -10,7 +10,8 @@
     { id: "linkedin",    hints: ["linkedin", "social profile", "link"] },
     { id: "coverLetter", hints: ["cover letter", "message", "suitability"] },
     { id: "gender",      hints: ["gender", "sex", "identify"] },
-    { id: "workAuth",    hints: ["authorized", "work authorization", "legally"] }
+    { id: "workAuth",    hints: ["authorized", "work authorization", "legally"] },
+    { id: "linkedin", hints: ["linkedin", "social profile", "link", "url"] }
   ];
 
   // --- NEW: THE LISTENER ---
