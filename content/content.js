@@ -1,14 +1,10 @@
 (() => {
   const DEBUG = true;
 
-  // 1. Messaging Listener
   chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
-    if (request.action === "TRIGGER_AUTOFILL") {
-      initAutofill();
-    }
+    if (request.action === "TRIGGER_AUTOFILL") initAutofill();
   });
 
-  // 2. The "Brain" - Merges Profile + Custom Fields
   async function initAutofill() {
     chrome.storage.local.get(["profile", "customFields"], (result) => {
       if (!result.profile) {
@@ -16,7 +12,6 @@
         return;
       }
 
-      // Start with Core Rules
       let activeRules = [
         { id: "firstName",   hints: ["first name", "fname", "given name", "first"] },
         { id: "lastName",    hints: ["last name", "lname", "family name", "last"] },
@@ -29,92 +24,97 @@
         { id: "workAuth",    hints: ["authorized", "work authorization", "legally"] }
       ];
 
-      // Inject Custom Rules from User
-      if (result.customFields && Array.isArray(result.customFields)) {
+      if (result.customFields) {
         result.customFields.forEach(cf => {
           activeRules.push({
             id: cf.label, 
-            hints: [cf.label.toLowerCase()], // The user's question is the hint
+            hints: [cf.label.toLowerCase()], 
             isCustom: true,
             customValue: cf.value
           });
         });
       }
-
       runAutofill(result.profile, activeRules);
     });
   }
 
-  // 3. The "Executioner" - Actually fills the page
   function runAutofill(profile, activeRules) {
-    const elements = Array.from(document.querySelectorAll("input, textarea, select"));
+    // Select all inputs and labels (sometimes labels are the target in JotForm)
+    const inputs = Array.from(document.querySelectorAll("input, textarea, select"));
     let filledCount = 0;
-    const filledFields = [];
 
-    elements.forEach((el) => {
+    inputs.forEach((el) => {
       const type = el.type?.toLowerCase();
       if (["hidden", "submit", "button", "search", "file"].includes(type)) return;
 
-      // Scan the field for clues
-      const labelText = (el.labels?.[0]?.innerText || el.closest("label")?.innerText || "").toLowerCase();
-      const placeholder = (el.getAttribute("placeholder") || "").toLowerCase();
-      const ariaLabel = (el.getAttribute("aria-label") || "").toLowerCase();
-      const nameAttr = (el.name || "").toLowerCase();
-      const idAttr = (el.id || "").toLowerCase();
-      const combinedSearchArea = `${labelText} ${placeholder} ${ariaLabel} ${nameAttr} ${idAttr}`;
+      // 1. Identify the Question Context
+      const groupContainer = el.closest('[data-component="radio"], [role="group"], .form-line');
+      const questionText = (
+        groupContainer?.querySelector('.form-label')?.innerText || 
+        el.labels?.[0]?.innerText || 
+        el.closest("label")?.innerText || ""
+      ).toLowerCase();
+      
+      const rawSearch = `${questionText} ${el.name} ${el.id} ${el.getAttribute('placeholder') || ""}`.toLowerCase();
+      const cleanSearchArea = rawSearch.replace(/[^\w\s]/g, ' ');
 
-      // FIND A MATCH
-      const matchedRule = activeRules.find(rule => 
-        rule.hints.some(hint => combinedSearchArea.includes(hint))
-      );
+      const matchedRule = activeRules.find(rule => {
+        return rule.hints.some(hint => {
+          const hintWords = hint.split(/\s+/).filter(w => w.length > 2);
+          return hintWords.every(word => cleanSearchArea.includes(word));
+        });
+      });
 
       if (matchedRule) {
-        // DECIDE VALUE: Is it from the main profile or a custom field?
         const finalValue = matchedRule.isCustom ? matchedRule.customValue : profile[matchedRule.id];
+        if (!finalValue) return;
+        const lowerValue = finalValue.toLowerCase().trim();
 
-        if (finalValue) {
-          if (el.tagName.toLowerCase() === "select") {
-            fillSelectField(el, finalValue, matchedRule.id);
-          } else {
-            fillTextField(el, finalValue, matchedRule.id);
+        // 2. RADIO/CHECKBOX - THE "AGGRESSIVE CONTAINER" FIX
+        if (type === "radio" || type === "checkbox") {
+          // JotForm specific: look at the span wrapping the radio
+          const wrapper = el.closest(".form-radio-item, .form-checkbox-item, div, span");
+          const choiceText = (wrapper?.innerText || "").toLowerCase();
+          
+          if (choiceText.includes(lowerValue) || lowerValue.includes(choiceText.trim())) {
+            // Check the internal state
+            el.checked = true;
+            
+            // Dispatch click to the visible element (the wrapper or label)
+            const targetToClick = el.labels?.[0] || wrapper || el;
+            targetToClick.click();
+            
+            triggerEvents(el);
+            triggerEvents(targetToClick);
+            filledCount++;
           }
+        } 
+        // 3. SELECTS & TEXT (Standard Logic)
+        else if (el.tagName.toLowerCase() === "select") {
+          const target = Array.from(el.options).find(opt => 
+            opt.text.toLowerCase().includes(lowerValue) || lowerValue.includes(opt.text.toLowerCase())
+          );
+          if (target) {
+            el.value = target.value;
+            triggerEvents(el);
+            filledCount++;
+          }
+        } 
+        else if (!el.value || el.value.trim() === "") {
+          el.value = finalValue;
+          triggerEvents(el);
           filledCount++;
-          filledFields.push({ field: matchedRule.id, value: finalValue });
         }
       }
     });
-
     showToast(`ApplySwiftly filled ${filledCount} fields`);
-    if (DEBUG) console.table(filledFields);
-  }
-
-  // --- HELPERS (Logic remains the same) ---
-
-  function fillSelectField(el, value, ruleId) {
-    const options = Array.from(el.options);
-    const lowerValue = value.toLowerCase();
-    const targetOption = options.find(opt => 
-      opt.value.toLowerCase() === lowerValue || 
-      opt.text.toLowerCase().includes(lowerValue)
-    );
-
-    if (targetOption) {
-      el.value = targetOption.value;
-      triggerEvents(el);
-    }
-  }
-
-  function fillTextField(el, value, ruleId) {
-    if (!value || (el.value && el.value.trim() !== "")) return;
-    el.value = value;
-    triggerEvents(el);
   }
 
   function triggerEvents(el) {
+    if (!el) return;
     el.focus();
-    ["input", "change", "blur"].forEach(type => el.dispatchEvent(new Event(type, { bubbles: true })));
-    el.dispatchEvent(new KeyboardEvent("keydown", { bubbles: true }));
-    el.dispatchEvent(new KeyboardEvent("keyup", { bubbles: true }));
+    const events = ["input", "change", "blur", "mousedown", "mouseup", "click"];
+    events.forEach(t => el.dispatchEvent(new Event(t, { bubbles: true })));
   }
 
   function showToast(message) {
@@ -125,7 +125,7 @@
     toast.innerText = message;
     Object.assign(toast.style, {
       position: "fixed", bottom: "20px", right: "20px",
-      background: "#333", color: "#fff", padding: "10px 20px",
+      background: "#333", color: "#fff", padding: "12px 20px",
       borderRadius: "8px", zIndex: "10000", fontFamily: "sans-serif"
     });
     document.body.appendChild(toast);
